@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>How it works · Monad Foundation announcements</title>
+<style>
+  :root { --purple: #6e54ff; --deep: #200052; --ink: #0f0f12; --muted: #727285; --line: #ececec; --tint: #f1efff; }
+  body { font: 15px/1.65 Inter, system-ui, sans-serif; margin: 0; background: #fbfaf9; color: var(--ink); }
+  main { max-width: 720px; margin: 0 auto; padding: 0 1rem 3rem; }
+  .hero { background: radial-gradient(120% 140% at 0% 0%, var(--purple), var(--deep) 60%); color: #fbfaf9; padding: 2.5rem 1rem 2rem; margin-bottom: 1.5rem; }
+  .hero > div { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.7rem; letter-spacing: -.02em; margin: 0 0 .3rem; }
+  .hero p { margin: 0; opacity: .8; }
+  h2 { font-size: 1.1rem; color: var(--deep); margin: 2rem 0 .5rem; }
+  section { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: .4rem 1.4rem 1.2rem; margin: 1rem 0; }
+  ol { padding-left: 1.2rem; }
+  li { margin: .5rem 0; }
+  code, pre { font: 13px ui-monospace, monospace; background: var(--tint); color: var(--deep); border-radius: 4px; }
+  code { padding: .05em .3em; }
+  pre { padding: .7rem .9rem; overflow-x: auto; }
+  a { color: var(--purple); }
+  .muted { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="hero"><div>
+  <h1>How it works</h1>
+  <p>Monad Foundation announcements, with their signatures checked on-chain.</p>
+</div></div>
+<main>
+  <section>
+    <h2>The problem</h2>
+    <p>The Monad Foundation publishes node-ops announcements in
+      <a href="https://github.com/monad-crypto/mf-nodeops-comms">mf-nodeops-comms</a>, each signed with GPG. An
+      announcement counts only if two of the Foundation's keys signed it. Checking that by hand means installing gpg,
+      importing the keys, comparing their fingerprints and verifying every signature, for every announcement.</p>
+  </section>
+
+  <section>
+    <h2>What this does</h2>
+    <p>The check runs once, on Monad, and everyone reads the result.</p>
+    <ol>
+      <li><strong>The Foundation signs.</strong> It publishes <code>announcement.txt</code> and
+        <code>announcement.sig</code> on GitHub, as it already does.</li>
+      <li><strong>Anyone proves each signature.</strong> A zero-knowledge proof shows "this exact text was signed by
+        this Foundation key". Producing it repeats what gpg does: read the signature packet, hash the text (SHA-256 or
+        SHA-512) and verify the Ed25519 signature. It takes about 20 seconds, on the
+        <a href="prove.html">submit page</a> or the command line.</li>
+      <li><strong>The registry verifies.</strong> A contract on Monad checks each proof against the text and the
+        Foundation's keys, which were fixed when it was deployed. A wrong text, key or proof is rejected, as is an
+        expired signature.</li>
+      <li><strong>Two keys make it official.</strong> When two different Foundation keys have signed the same text,
+        the registry stores it. <a href="./">The announcements page</a> reads it back from the chain.</li>
+    </ol>
+    <p>The signatures themselves never go on-chain: the proofs stand for them.</p>
+  </section>
+
+  <section>
+    <h2>Who you trust</h2>
+    <p><strong>You trust</strong> the Foundation's keys, the open-source code of the circuit and the contract (not
+      audited), and the RPC or node you read from.</p>
+    <p><strong>You don't trust</strong> whoever proves or submits an announcement, GitHub, or where the files came
+      from. Nobody can register a text the Foundation didn't sign: there would be no valid proof for it.</p>
+    <p>A page can show anything, so read from your own copy: deploy it from the
+      <a href="https://github.com/node101-io/mf-announcement-registry">repository</a>, and point Settings at your own
+      node.</p>
+  </section>
+
+  <section>
+    <h2>Check it yourself</h2>
+    <p>With <a href="https://getfoundry.sh">Foundry</a>, against your own node, where <code>REGISTRY</code> is the
+      address under Settings on the announcements page:</p>
+<pre>cast call $REGISTRY "keySet()(bytes20[])"
+cast call $REGISTRY "announcement(uint64)(string,bytes20[])" 6</pre>
+    <p>The first must list the fingerprints in
+      <a href="https://docs.monad.xyz/node-ops/gpg-keys.json">gpg-keys.json</a>. The second prints the text of
+      announcement #6 and the two keys that signed it.</p>
+    <p class="muted">If the Foundation changes its keys, a new registry is deployed with the new ones, and this page
+      moves to it.</p>
+  </section>
+
+  <p class="muted"><a href="./">Announcements</a> · <a href="prove.html">Submit an announcement</a> ·
+    <a href="https://github.com/node101-io/mf-announcement-registry">Source</a></p>
+</main>
+</body>
+</html>

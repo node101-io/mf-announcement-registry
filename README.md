@@ -14,7 +14,8 @@ cast call $REGISTRY "announcement(uint64)(string,bytes20[])" 6 --rpc-url http://
 
 `ui/public/index.html` is a single static page that lists them, with light formatting (bold, code, links). It
 reads the testnet deployment through the public RPC by default; Settings at the bottom points it at any other RPC,
-such as your own node. It has no dependencies and loads nothing else.
+such as your own node. It has no dependencies and loads nothing else. `ui/public/how.html` explains the project
+in plain terms.
 
 `ui/prove.html` submits an announcement: it fetches the text and signatures from mf-nodeops-comms, proves each
 signature in the browser (about 20 seconds and up to 3 GB of memory each, on a desktop browser) and sends them with
