@@ -3,34 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'">
 <title>How it works · Monad Foundation announcements</title>
-<style>
-  :root { --purple: #6e54ff; --deep: #200052; --ink: #0f0f12; --muted: #727285; --line: #ececec; --tint: #f1efff; }
-  body { font: 15px/1.65 Inter, system-ui, sans-serif; margin: 0; background: #fbfaf9; color: var(--ink); }
-  main { max-width: 720px; margin: 0 auto; padding: 0 1rem 3rem; }
-  .hero { background: radial-gradient(120% 140% at 0% 0%, var(--purple), var(--deep) 60%); color: #fbfaf9; padding: 2.5rem 1rem 2rem; margin-bottom: 1.5rem; }
-  .hero > div { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 1.7rem; letter-spacing: -.02em; margin: 0 0 .3rem; }
-  .hero p { margin: 0; opacity: .8; }
-  h2 { font-size: 1.1rem; color: var(--deep); margin: 2rem 0 .5rem; }
-  section { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: .4rem 1.4rem 1.2rem; margin: 1rem 0; }
-  ol { padding-left: 1.2rem; }
-  li { margin: .5rem 0; }
-  code, pre { font: 13px ui-monospace, monospace; background: var(--tint); color: var(--deep); border-radius: 4px; }
-  code { padding: .05em .3em; }
-  pre { padding: .7rem .9rem; overflow-x: auto; }
-  a { color: var(--purple); }
-  .muted { color: var(--muted); font-size: 13px; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="hero"><div>
+<header class="top"><div class="bar">
+  <a class="brand" href="./">MF Announcements</a>
+  <nav>
+    <a href="./">Announcements</a>
+    <a href="how.html">How it works</a>
+    <a href="prove.html">Submit</a>
+    <a href="https://github.com/node101-io/mf-announcement-registry" title="Source, and deploy your own copy"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>GitHub</a>
+  </nav>
+</div></header>
+<div class="page">
+<div class="hero">
   <h1>How it works</h1>
   <p>Monad Foundation announcements, with their signatures checked on-chain.</p>
-</div></div>
+</div>
 <main>
-  <section>
+  <section class="card">
     <h2>The problem</h2>
     <p>The Monad Foundation publishes node-ops announcements in
       <a href="https://github.com/monad-crypto/mf-nodeops-comms">mf-nodeops-comms</a>, each signed with GPG. An
@@ -38,7 +31,7 @@
       importing the keys, comparing their fingerprints and verifying every signature, for every announcement.</p>
   </section>
 
-  <section>
+  <section class="card">
     <h2>What this does</h2>
     <p>The check runs once, on Monad, and everyone reads the result.</p>
     <ol>
@@ -57,7 +50,7 @@
     <p>The signatures themselves never go on-chain: the proofs stand for them.</p>
   </section>
 
-  <section>
+  <section class="card">
     <h2>Who you trust</h2>
     <p><strong>You trust</strong> the Foundation's keys, the open-source code of the circuit and the contract (not
       audited), and the RPC or node you read from.</p>
@@ -68,7 +61,7 @@
       node.</p>
   </section>
 
-  <section>
+  <section class="card">
     <h2>Check it yourself</h2>
     <p>With <a href="https://getfoundry.sh">Foundry</a>, against your own node, where <code>REGISTRY</code> is the
       address under Settings on the announcements page:</p>
@@ -81,8 +74,7 @@ cast call $REGISTRY "announcement(uint64)(string,bytes20[])" 6</pre>
       moves to it.</p>
   </section>
 
-  <p class="muted"><a href="./">Announcements</a> · <a href="prove.html">Submit an announcement</a> ·
-    <a href="https://github.com/node101-io/mf-announcement-registry">Source</a></p>
 </main>
+</div>
 </body>
 </html>
