@@ -1,0 +1,6 @@
+[submodule "contracts/lib/forge-std"]
+	path = contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "circuit/lib/noir-ed25519"]
+	path = circuit/lib/noir-ed25519
+	url = https://github.com/willemolding/noir-ed25519

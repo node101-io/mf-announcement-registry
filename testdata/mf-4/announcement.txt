@@ -1,0 +1,17 @@
+MF Announcement #4
+
+Created: 2026-10-20T11:07:00Z
+
+Code Orange:
+OVHcloud CLI releases on Github compromised
+
+Greetings all node operators, please refer to the following tweet and instructions from OVH founder Octave Klaba: https://x.com/olesovhcom/status/2112225308589834260?s=20
+
+More information provided here:
+https://thehackernews.com/2026/10/hackers-hijack-five-ovhcloud-cli.html
+
+Whilst this may not affect OVH users on Monad, please do due diligence and ensure risks are mitigated.
+
+
+Many thanks,
+Monad Foundation

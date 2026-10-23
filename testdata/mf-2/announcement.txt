@@ -1,0 +1,14 @@
+MF Announcement #2
+
+Created: 2026-10-19T15:35:00Z
+
+:large_orange_circle: MF OTelCollector endpoint deprecation :large_orange_circle:
+
+Hi Operators,
+
+As stated in previous announcements, MF is going to deprecate the OTelCollector endpoint where validators used to push metrics. If you haven't already, please allow MF to scrape your validator metrics using these instructions here: https://docs.monad.xyz/node-ops/upgrade-instructions/prometheus-metrics-migration
+
+If there are any metrics related issues after followimg these instructions, MF will contact each party individually.
+
+Many Thanks,
+MF

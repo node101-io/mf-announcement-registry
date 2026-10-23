@@ -1,0 +1,8 @@
+target
+contracts/out
+contracts/cache
+contracts/broadcast
+.env
+circuit/target
+circuit/Prover.toml
+circuit/Test.toml

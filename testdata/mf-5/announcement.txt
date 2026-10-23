@@ -1,0 +1,19 @@
+MF Announcement #5
+
+Created: 2026-10-21T08:26:00Z
+
+Code Green
+
+Network Events Calendar live on Gmonads!
+
+Greetings Node Operators,
+
+Now live on gmonads.com - events!
+https://gmonads.com/events
+
+You can track the upcoming events across both networks from this events tab.
+These events will cover load tests, client / protocol releases, network / node related activations and breaking change activations.
+
+Many thanks,
+
+- MF

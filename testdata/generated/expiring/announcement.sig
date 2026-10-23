@@ -1,0 +1,11 @@
+-----BEGIN PGP ARMORED FILE-----
+Comment: Use "gpg --dearmor" for unpacking
+
+iHsEABYKACMWIQSIQd0+h+yiEjjbXAstZ6HhjabwdgUCarE7gAWDEswDAAAKCRAt
+Z6HhjabwdhG0AP0ToB2JY4vnSnjDLm3KIfAdl6FG1qusD+9aJca1FI42DQEA+iAG
+dNHpEVkqzxrHPAw9ro+AbiFoE3oUDFXnt692LwWIdQQAFggAHRYhBLynlYx09Lpc
+WgiGhXylPYAX935oBQJqsTuAAAoJEHylPYAX935obyEBAJybNXr/+cizI2k50EDu
+S5xvKbrRNAvAnSt3EPk3LHArAP9aXq40cZNEk1hu0GLeeMqPhwvSvw2hCuYEWgzM
+DojRAQ==
+=PvZe
+-----END PGP ARMORED FILE-----

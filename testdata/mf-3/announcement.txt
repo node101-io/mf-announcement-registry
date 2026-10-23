@@ -1,0 +1,23 @@
+Announcement #3
+
+Created: 2026-09-09T05:06:00Z
+
+:large_green_circle: Monad Foundation raising delegated stake through the VDP.:large_green_circle:
+
+Monad Foundation will soon increase the amount of MON delegated through the Validator Delegation Program (VDP) by approximately 5 billion MON.
+
+This increase is consistent with the previously communicated plan to delegate between 15 billion and 25 billion MON through the VDP during the first year of Monad Mainnet.
+
+As part of this increase, the amount of MON delegated to validators in each VDP tier will increase as follows:
+Tier    Current Delegation.    New Delegation
+T1       90m MON                   140m MON
+T2       75m MON                   110m MON
+T3       52.5m MON                75m MON
+T4       25m MON                    35m MON
+
+This change does not affect validators' current tier classifications.
+
+The maximum commission rate for validators participating in the VDP remains 15%.
+
+Many thanks,
+Monad Foundation

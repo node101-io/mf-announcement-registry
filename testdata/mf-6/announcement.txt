@@ -1,0 +1,20 @@
+MF Announcement #6
+
+Created: 2026-10-22T07:48:00Z
+
+Code Orange:
+
+MAINNET RELEASE ANNOUNCEMENT - v0.16.5
+
+Greetings Node Operators,
+A new release is available for all nodes on Mainnet!
+
+Instructions: https://docs.monad.xyz/node-ops/upgrade-instructions/v0.16.5 Changelogs: https://docs.monad.xyz/developer-essentials/changelog/releases#v0-16-5
+
+Notes:
+
+1. `--triedb-path` must name the triedb device**, not a directory containing it. Packaged installs already pass `/dev/triedb` and need no change; custom deployments should check before upgrading
+
+2. This release is **not** gated by cohorts. All node providers are invited to upgrade.
+
+Many thanks, MF
