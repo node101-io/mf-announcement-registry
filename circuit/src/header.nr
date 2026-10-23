@@ -1,5 +1,5 @@
 //! The announcement number, from a first line that is exactly `MF Announcement #N`
-//! or `Announcement #N`. Mirrors `announcement_number` in lib/src/lib.rs.
+//! or `Announcement #N`.
 
 global MAX_DIGITS: u32 = 20;
 

@@ -6,11 +6,12 @@
 //! number, the two signers' fingerprints, and the earliest signature expiration
 //! (0 = never), which the contract compares with the block time.
 //!
-//! The signatures themselves are private: the prover picks two valid ones.
+//! The signatures are witnesses, not public inputs: the contract never sees them,
+//! and the prover picks two valid ones.
 
 use bignum::{BigNum, ED25519_Fq as Fq, ED25519_Fr as Fr};
 use ed25519::ed25519_verify;
-use edwards_bignum::{CurveTrait, ed25519::Ed25519, ScalarField};
+use edwards_bignum::{ed25519::{Ed25519, Ed25519Params}, ScalarField, TECurveParameterTrait};
 use openpgp::{HASH_SHA256, HASHED_BUF, MAX_HASHED};
 
 mod header;
@@ -30,13 +31,11 @@ fn main(
     fingerprints: pub [Field; MAX_KEYS],
     public_keys: pub [[Field; 2]; MAX_KEYS],
     // Per signature: the signed part of the packet (version through hashed
-    // subpackets), R and S, and the x-coordinates of the public key and R.
+    // subpackets), R and S.
     hashed: [[u8; HASHED_BUF]; SIGNATURES],
     hashed_lens: [u32; SIGNATURES],
     rs: [[u8; 32]; SIGNATURES],
     ss: [[u8; 32]; SIGNATURES],
-    public_key_xs: [[u128; 3]; SIGNATURES],
-    r_xs: [[u128; 3]; SIGNATURES],
 ) -> pub (u64, [Field; SIGNATURES], u64) {
     let text = unpack_text(text, text_len);
     let number = header::number(text, text_len);
@@ -48,8 +47,8 @@ fn main(
         let public_key = pinned_key(fingerprints, public_keys, packet.issuer);
         let (digest, digest_len) = digest(text, text_len, hashed[i], hashed_lens[i], packet.hash);
 
-        let a = decompress(public_key, public_key_xs[i]);
-        let r = decompress(rs[i], r_xs[i]);
+        let a = decompress(public_key);
+        let r = decompress(rs[i]);
         let s = scalar(ss[i]);
         assert(ed25519_verify(a, s, r, BoundedVec::from_parts(digest, digest_len)));
 
@@ -134,37 +133,30 @@ fn digest(text: [u8; MAX_TEXT], text_len: u32, hashed: [u8; HASHED_BUF], hashed_
     }
 }
 
-/// Decodes an RFC 8032 point encoding, given its x-coordinate as a witness.
-/// Non-canonical encodings (y >= p, or x == 0 with the sign bit set) are rejected.
-fn decompress(encoded: [u8; 32], x_limbs: [u128; 3]) -> Ed25519 {
-    let sign = encoded[31] >> 7;
+/// Decodes an RFC 8032 point encoding. Non-canonical encodings are not rejected:
+/// they only allow other encodings of the same valid signature, never a signature
+/// without the private key.
+fn decompress(encoded: [u8; 32]) -> Ed25519 {
     let mut y_bytes = encoded;
     y_bytes[31] = y_bytes[31] & 0x7f;
     let y = Fq::from_le_bytes(y_bytes);
-    let x = Fq::from_limbs(x_limbs);
-    assert_canonical(y);
-    assert_canonical(x);
-
-    let point = Ed25519::from((x, y));
-    point.assert_is_on_curve();
-    assert((x.to_le_bytes()[0] & 1) == sign);
-    point
+    // Safety: `ed25519_verify` checks that the point is on the curve, and with the
+    // other root it is a different public key or R, so the signature fails.
+    let x = unsafe { x_coordinate(y, encoded[31] >> 7) };
+    x.validate_in_range();
+    Ed25519::from((x, y))
 }
 
-/// Decodes S, rejecting S >= L as RFC 8032 requires.
-fn scalar(encoded: [u8; 32]) -> ScalarField<64> {
-    let s = Fr::from_le_bytes(encoded);
-    let limbs = s.get_limbs();
-    s.validate_in_field();
-    assert(limbs != Fr::params().modulus);
+/// x = ±sqrt((y^2 - 1) / (d y^2 + 1)), the root whose low bit is `sign` (RFC 8032 5.1.3).
+unconstrained fn x_coordinate(y: Fq, sign: u8) -> Fq {
+    let yy = y.__sqr();
+    let x = yy.__sub(Fq::one()).__div(Ed25519Params::d().__mul(yy).__add(Fq::one())).__sqrt().unwrap();
+    if (x.to_le_bytes()[0] & 1) == sign { x } else { x.__neg() }
+}
 
+/// Decodes S. S >= L is not rejected, for the same reason.
+fn scalar(encoded: [u8; 32]) -> ScalarField<64> {
+    let limbs = Fr::from_le_bytes(encoded).get_limbs();
     let two_120: Field = 0x1000000000000000000000000000000;
     ScalarField::<64>::from(limbs[0] as Field + (limbs[1] as Field) * two_120 + (limbs[2] as Field) * two_120 * two_120)
-}
-
-/// Constrains `v` to 120-bit limbs and `v < p`. `validate_in_field` alone admits `v == p`.
-fn assert_canonical(v: Fq) {
-    v.validate_in_range();
-    v.validate_in_field();
-    assert(v.get_limbs() != Fq::params().modulus);
 }

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
 hex = "0.4"
-mf-verify = { path = "../lib" }
-num-bigint = "0.4"
 serde_json = "1"
+sha1 = "0.10"

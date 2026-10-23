@@ -1,10 +1,10 @@
 //! Command-line tool for the announcement registry.
 
 mod inputs;
+mod openpgp;
 
 use clap::Parser;
 use inputs::Inputs;
-use mf_verify::Key;
 use std::{fs, path::Path, path::PathBuf, process::Command, time::SystemTime};
 
 #[derive(Parser)]
@@ -28,49 +28,40 @@ fn main() -> Result<()> {
     match Cmd::parse() {
         Cmd::Keys { keys } => {
             let packets = key_packets(&keys)?;
-            for body in &packets {
-                eprintln!("{}", hex::encode_upper(mf_verify::parse_public_key(body)?.fingerprint));
+            for packet in &packets {
+                eprintln!("{}", hex::encode_upper(openpgp::key(packet)?.fingerprint));
             }
             let hex: Vec<String> = packets.iter().map(|p| format!("0x{}", hex::encode(p))).collect();
             println!("{}", hex.join(","));
         }
         Cmd::Prove { announcement, keys, circuit } => {
             let text = fs::read(announcement.join("announcement.txt"))?;
-            let sig = mf_verify::dearmor(&fs::read_to_string(announcement.join("announcement.sig"))?)?;
-            let keys: Vec<Key> = key_packets(&keys)?
-                .iter()
-                .map(|body| mf_verify::parse_public_key(body))
-                .collect::<std::result::Result<_, _>>()?;
-
-            let number = mf_verify::announcement_number(std::str::from_utf8(&text)?)?;
+            let signatures = openpgp::signatures(&fs::read_to_string(announcement.join("announcement.sig"))?)?;
+            let keys = key_packets(&keys)?.iter().map(|p| openpgp::key(p)).collect::<std::result::Result<Vec<_>, _>>()?;
             let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?.as_secs();
-            let signed = mf_verify::signatures(&text, &sig, &keys)?;
-            let chosen = mf_verify::select(&signed, now).ok_or("fewer than two pinned keys signed")?;
-            println!("announcement #{number} signed by:");
-            for s in &chosen {
-                println!("  {}", hex::encode_upper(s.fingerprint));
-            }
+            let chosen = openpgp::select(&signatures, &keys, now).ok_or("fewer than two pinned keys signed")?;
 
-            fs::write(circuit.join("Prover.toml"), Inputs::new(&text, &keys, &chosen).to_toml()?)?;
+            fs::write(circuit.join("Prover.toml"), Inputs { text: text.clone(), keys, signatures: chosen }.to_toml()?)?;
             run(Command::new("nargo").arg("execute").current_dir(&circuit))?;
             run(Command::new("bb")
                 .args(["prove", "--write_vk", "-t", "evm-no-zk", "-o", "target"])
                 .args(["-b", "target/mf_signatures.json", "-w", "target/mf_signatures.gz"])
                 .current_dir(&circuit))?;
 
-            // The circuit's public outputs, passed to `submit` alongside the proof.
-            let expires_at = chosen.iter().map(|s| s.expires_at).filter(|&t| t != 0).min().unwrap_or(0);
+            // The last four public inputs are the circuit's outputs, which `submit` takes alongside the proof.
+            let inputs: Vec<[u8; 32]> = fs::read(circuit.join("target/public_inputs"))?.chunks(32).map(|w| w.try_into().unwrap()).collect();
+            let [number, signer_0, signer_1, expires_at] = inputs[inputs.len() - 4..] else { unreachable!() };
+            let uint = |w: [u8; 32]| u64::from_be_bytes(w[24..].try_into().unwrap());
+            println!("announcement #{} signed by {} and {}", uint(number), hex::encode_upper(&signer_0[12..]), hex::encode_upper(&signer_1[12..]));
+
             let out = announcement.join("proof.json");
             let json = serde_json::json!({
                 "text": format!("0x{}", hex::encode(&text)),
-                "number": number,
-                "signers": chosen.iter().map(|s| format!("0x{}", hex::encode(s.fingerprint))).collect::<Vec<_>>(),
-                "expiresAt": expires_at,
+                "number": uint(number),
+                "signers": [format!("0x{}", hex::encode(&signer_0[12..])), format!("0x{}", hex::encode(&signer_1[12..]))],
+                "expiresAt": uint(expires_at),
                 "proof": format!("0x{}", hex::encode(fs::read(circuit.join("target/proof"))?)),
-                "publicInputs": fs::read(circuit.join("target/public_inputs"))?
-                    .chunks(32)
-                    .map(|w| format!("0x{}", hex::encode(w)))
-                    .collect::<Vec<_>>(),
+                "publicInputs": inputs.iter().map(|w| format!("0x{}", hex::encode(w))).collect::<Vec<_>>(),
             });
             fs::write(&out, serde_json::to_string_pretty(&json)?)?;
             println!("wrote {}", out.display());
@@ -86,10 +77,7 @@ fn key_packets(dir: &Path) -> Result<Vec<Vec<u8>>> {
     paths.sort();
     paths
         .iter()
-        .map(|p| {
-            let cert = mf_verify::dearmor(&fs::read_to_string(p)?)?;
-            Ok(mf_verify::primary_key_packet(&cert)?.to_vec())
-        })
+        .map(|p| Ok(openpgp::key_packet(&fs::read_to_string(p)?)?))
         .collect()
 }
 

@@ -1,6 +1,6 @@
 //! The signed part of an OpenPGP v4 signature packet: version, type, algorithms
 //! and hashed subpackets. Only what the Foundation uses is accepted: binary-document
-//! signatures by EdDSA keys with SHA-256 or SHA-512. Mirrors lib/src/lib.rs.
+//! signatures by EdDSA keys with SHA-256 or SHA-512.
 
 pub global MAX_HASHED: u32 = 256;
 /// The hashed area with 32 bytes of padding, so reads at fixed offsets past a

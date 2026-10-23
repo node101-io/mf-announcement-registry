@@ -10,6 +10,7 @@
   h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
   .muted { color: #6b6773; font-size: 13px; }
   .error { color: #b00020; }
+  .warning { background: #fff4d6; border: 1px solid #f0d58a; border-radius: 8px; padding: .5rem .8rem; margin: 1rem 0; }
   article { border: 1px solid #e3e1e8; border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
   article header { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
   article h2 { font-size: 1.05rem; margin: 0; }
@@ -30,16 +31,18 @@
 <h1>Monad Foundation announcements</h1>
 <p class="muted">Each announcement below was signed by two Monad Foundation keys, checked on-chain.</p>
 
+<div id="warning" class="warning" hidden></div>
 <div id="status" class="muted">Loading…</div>
 <section id="list"></section>
 
 <footer class="muted">
   <details>
     <summary>Settings</summary>
-    <p>Data is read from the RPC below. Anyone can run this page against their own node, to rely on nothing else.</p>
+    <p>Data is read from the RPC below. Anyone can run this page against their own node, to rely on nothing else.
+      Leave a field empty for the default.</p>
     <form id="config">
-      <label for="rpc">RPC</label><input id="rpc" required>
-      <label for="registry">Registry</label><input id="registry" required pattern="0x[0-9a-fA-F]{40}">
+      <label for="rpc">RPC</label><input id="rpc">
+      <label for="registry">Registry</label><input id="registry" pattern="0x[0-9a-fA-F]{40}">
       <button>Load</button>
     </form>
     <div id="keys"></div>
@@ -47,7 +50,7 @@
 </footer>
 
 <script>
-// Set once the registry is deployed on Monad mainnet; ?registry= overrides it.
+// Set once the registry is deployed on Monad mainnet.
 const DEFAULT_REGISTRY = "";
 const DEFAULT_RPC = "https://rpc.monad.xyz";
 
@@ -55,9 +58,12 @@ const DEFAULT_RPC = "https://rpc.monad.xyz";
 const SEL = { count: "0x06661abd", latest: "0x52bfe789", keySet: "0x788499c0", announcement: "0x91b5aa36" };
 
 const $ = (id) => document.getElementById(id);
-const params = new URLSearchParams(location.search);
-$("rpc").value = params.get("rpc") || localStorage.getItem("rpc") || DEFAULT_RPC;
-$("registry").value = params.get("registry") || DEFAULT_REGISTRY;
+// Settings are only changed by hand, never by a link: a crafted RPC or registry
+// could show anything.
+$("rpc").placeholder = DEFAULT_RPC;
+$("registry").placeholder = DEFAULT_REGISTRY || "0x…";
+$("rpc").value = localStorage.getItem("rpc") || "";
+$("registry").value = localStorage.getItem("registry") || "";
 
 async function call(rpc, to, data) {
   const res = await fetch(rpc, {
@@ -114,7 +120,11 @@ function render(text) {
 }
 
 async function load() {
-  const rpc = $("rpc").value.trim(), registry = $("registry").value.trim();
+  const rpc = $("rpc").value.trim() || DEFAULT_RPC;
+  const registry = $("registry").value.trim() || DEFAULT_REGISTRY;
+  const custom = [rpc !== DEFAULT_RPC && "RPC", registry.toLowerCase() !== DEFAULT_REGISTRY.toLowerCase() && "registry"].filter(Boolean);
+  $("warning").hidden = custom.length === 0;
+  $("warning").textContent = `You are using a custom ${custom.join(" and ")} (see Settings). Only trust it if you set it up yourself.`;
   $("list").replaceChildren();
   $("keys").replaceChildren();
   $("status").className = "muted";
@@ -164,7 +174,10 @@ async function load() {
 
 $("config").addEventListener("submit", (e) => {
   e.preventDefault();
-  localStorage.setItem("rpc", $("rpc").value.trim());
+  for (const id of ["rpc", "registry"]) {
+    const value = $(id).value.trim();
+    value ? localStorage.setItem(id, value) : localStorage.removeItem(id);
+  }
   load();
 });
 load();

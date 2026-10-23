@@ -21,10 +21,9 @@ The proof does the checking; the contract only feeds it and stores the result.
 
 | Part | Role |
 |---|---|
-| `circuit/` | A Noir circuit. Given the text and the pinned keys as public inputs, and two signature packets as private inputs, it parses the signed part of each packet, computes its digest (SHA-256 or SHA-512) over the text, verifies the Ed25519 signature with [noir-ed25519](https://github.com/willemolding/noir-ed25519) (a submodule pinned to a commit), and checks that the two signers are distinct pinned keys. It outputs the announcement number, the two signers, and the earliest signature expiration. |
+| `circuit/` | A Noir circuit. Given the text and the pinned keys as public inputs, and two signature packets as witnesses (inputs the contract does not pass), it parses the signed part of each packet, computes its digest (SHA-256 or SHA-512) over the text, verifies the Ed25519 signature with [noir-ed25519](https://github.com/willemolding/noir-ed25519) (a submodule pinned to a commit), and checks that the two signers are distinct pinned keys. It outputs the announcement number, the two signers, and the earliest signature expiration. |
 | `contracts/` | `AnnouncementRegistry` passes the text and the pinned keys to the verifier, checks that no signature has expired at the current block, and stores the text. It has no owner and no upgrades. |
-| `cli/` | `mfreg`: prints the key set, picks two valid signatures, and produces the proof with `nargo` and `bb`. |
-| `lib/` | Rust reference of the parsing, used by `mfreg` and its tests. |
+| `cli/` | `mfreg`: prints the key set, picks two signatures by distinct pinned keys, and produces the proof with `nargo` and `bb`. It verifies nothing itself; the circuit does. |
 | `ui/` | Read-only page. |
 
 The signature file never goes on-chain: whoever submits only needs the text, the proof and the circuit's outputs.
@@ -99,9 +98,8 @@ After deploying to mainnet, set `DEFAULT_REGISTRY` in `ui/index.html`.
 ## Tests
 
 ```sh
-cargo test                  # parsing and selection; the circuit on mf-6, and on changes it must reject:
-                            # changed text, unpinned or repeated signer, non-canonical S/R/keys, SHA-384
-                            # (~3 min; runs nargo)
+cargo test                  # signature selection; the circuit on mf-6, and on changes it must reject:
+                            # changed text, unpinned or repeated signer, SHA-384 (~1 min; runs nargo)
 cd contracts && forge test  # all published announcements with real proofs, public inputs match the prover,
                             # and failure cases
 ```
