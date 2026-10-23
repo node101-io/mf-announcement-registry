@@ -1,13 +1,12 @@
-//! Proves that an announcement text carries valid OpenPGP signatures by two
-//! distinct pinned keys.
+//! Proves that an announcement text carries a valid OpenPGP signature by a pinned
+//! key. The registry contract requires one proof for each of two distinct signers.
 //!
 //! Public inputs: the text (31 bytes per field), its length, and the pinned keys,
 //! all supplied by the registry contract. Public outputs: the announcement
-//! number, the two signers' fingerprints, and the earliest signature expiration
-//! (0 = never), which the contract compares with the block time.
+//! number, the signer's fingerprint, and the signature expiration (0 = never),
+//! which the contract compares with the block time.
 //!
-//! The signatures are witnesses, not public inputs: the contract never sees them,
-//! and the prover picks two valid ones.
+//! The signature is a witness, not a public input: the contract never sees it.
 
 use bignum::{BigNum, ED25519_Fq as Fq, ED25519_Fr as Fr};
 use ed25519::ed25519_verify;
@@ -20,7 +19,6 @@ mod openpgp;
 global MAX_TEXT: u32 = 4096;
 global TEXT_FIELDS: u32 = 133; // ceil(4096 / 31)
 global MAX_KEYS: u32 = 8;
-global SIGNATURES: u32 = 2;
 global PREIMAGE: u32 = MAX_TEXT + MAX_HASHED + 6;
 
 fn main(
@@ -30,37 +28,22 @@ fn main(
     // encodings as big-endian 16-byte halves.
     fingerprints: pub [Field; MAX_KEYS],
     public_keys: pub [[Field; 2]; MAX_KEYS],
-    // Per signature: the signed part of the packet (version through hashed
-    // subpackets), R and S.
-    hashed: [[u8; HASHED_BUF]; SIGNATURES],
-    hashed_lens: [u32; SIGNATURES],
-    rs: [[u8; 32]; SIGNATURES],
-    ss: [[u8; 32]; SIGNATURES],
-) -> pub (u64, [Field; SIGNATURES], u64) {
+    // The signed part of the packet (version through hashed subpackets), R and S.
+    hashed: [u8; HASHED_BUF],
+    hashed_len: u32,
+    r: [u8; 32],
+    s: [u8; 32],
+) -> pub (u64, Field, u64) {
     let text = unpack_text(text, text_len);
     let number = header::number(text, text_len);
 
-    let mut signers = [0; SIGNATURES];
-    let mut expires_at: u64 = 0;
-    for i in 0..SIGNATURES {
-        let packet = openpgp::parse(hashed[i], hashed_lens[i]);
-        let public_key = pinned_key(fingerprints, public_keys, packet.issuer);
-        let (digest, digest_len) = digest(text, text_len, hashed[i], hashed_lens[i], packet.hash);
+    let packet = openpgp::parse(hashed, hashed_len);
+    let public_key = pinned_key(fingerprints, public_keys, packet.issuer);
+    let (digest, digest_len) = digest(text, text_len, hashed, hashed_len, packet.hash);
+    let verified = ed25519_verify(decompress(public_key), scalar(s), decompress(r), BoundedVec::from_parts(digest, digest_len));
+    assert(verified);
 
-        let a = decompress(public_key);
-        let r = decompress(rs[i]);
-        let s = scalar(ss[i]);
-        assert(ed25519_verify(a, s, r, BoundedVec::from_parts(digest, digest_len)));
-
-        signers[i] = packet.issuer;
-        let earlier = (expires_at == 0) | (packet.expires_at < expires_at);
-        if (packet.expires_at != 0) & earlier {
-            expires_at = packet.expires_at;
-        }
-    }
-    assert(signers[0] != signers[1]);
-
-    (number, signers, expires_at)
+    (number, packet.issuer, packet.expires_at)
 }
 
 /// Unpacks 31-byte big-endian chunks, requiring zeros past `len`.

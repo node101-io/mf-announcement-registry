@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'unsafe-inline'; connect-src 'self' data: http: https:">
+<title>Submit an announcement</title>
+<style>
+  :root { --purple: #6e54ff; --deep: #200052; --ink: #0f0f12; --muted: #727285; --line: #ececec; }
+  body { font: 15px/1.6 Inter, system-ui, sans-serif; margin: 0; background: #fbfaf9; color: var(--ink); }
+  main { max-width: 720px; margin: 0 auto; padding: 0 1rem 3rem; }
+  .hero { background: radial-gradient(120% 140% at 0% 0%, var(--purple), var(--deep) 60%); color: #fbfaf9; padding: 2.5rem 1rem 2rem; margin-bottom: 1.5rem; }
+  .hero > div { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.7rem; letter-spacing: -.02em; margin: 0 0 .3rem; }
+  .hero p { margin: 0; opacity: .8; }
+  a { color: var(--purple); }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 1.2rem 1.4rem; }
+  form { display: grid; grid-template-columns: auto 1fr; gap: .6rem .8rem; align-items: center; }
+  input { font: 13px ui-monospace, monospace; padding: .45rem .6rem; border: 1px solid var(--line); border-radius: 8px; }
+  button { grid-column: 2; justify-self: start; font: 600 13px Inter, system-ui, sans-serif; color: #fff; background: var(--purple); border: 0; border-radius: 99px; padding: .5rem 1.3rem; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: progress; }
+  .muted { color: var(--muted); font-size: 13px; }
+  #log { font: 13px ui-monospace, monospace; margin-top: 1rem; white-space: pre-wrap; word-break: break-all; }
+  .error { color: #b00020; }
+  .ok { color: #1d7a3c; }
+</style>
+</head>
+<body>
+<div class="hero"><div>
+  <h1>Submit an announcement</h1>
+  <p>Proves the Foundation's signatures in your browser and submits them to the registry.</p>
+</div></div>
+<main>
+  <p class="muted">Anyone can submit: the registry verifies every proof, so neither this page nor whoever runs it is
+    trusted. Proving downloads about 90 MB once and needs up to 3 GB of memory; use a desktop browser. Each signature is
+    one transaction of about 5 million gas. Registry: <code id="registry"></code>. <a href="./">Back to the announcements</a></p>
+  <div class="card">
+    <form id="form">
+      <label for="number">Announcement</label><input id="number" placeholder="7, fetched from mf-nodeops-comms">
+      <label for="txt">or announcement.txt</label><input id="txt" type="file" accept=".txt">
+      <label for="sig">and announcement.sig</label><input id="sig" type="file" accept=".sig,.asc">
+      <button id="run">Prove and submit</button>
+    </form>
+    <div id="log"></div>
+  </div>
+</main>
+<script type="module" src="/src/prove.ts"></script>
+</body>
+</html>

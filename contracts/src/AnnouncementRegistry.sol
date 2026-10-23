@@ -7,12 +7,13 @@ import {SHA1} from "./vendor/SHA1.sol";
 /// @title AnnouncementRegistry
 /// @notice Monad Foundation node-ops announcements with verified OpenPGP signatures.
 ///         Anyone can submit; nobody can change the rules.
-/// @dev A Noir proof (circuit/) attests that the text carries valid signatures by
-///      two distinct pinned keys, and yields the announcement number, the signers
-///      and the earliest signature expiration. The contract only feeds the text and
-///      the keys to the verifier, checks the expiration against the block time, and
-///      stores the text. The key set and verifier are fixed: a new key set means a
-///      new contract.
+/// @dev A Noir proof (circuit/) attests that the text carries a valid signature by
+///      a pinned key, and yields the announcement number, the signer and the
+///      signature expiration. Each signature is submitted on its own; the text is
+///      registered once THRESHOLD distinct keys have signed it. The contract feeds
+///      the text and the keys to the verifier, checks the expiration against the
+///      block time, and counts the signers. The key set and verifier are fixed: a
+///      new key set means a new contract.
 contract AnnouncementRegistry {
     struct Announcement {
         string text;
@@ -23,7 +24,10 @@ contract AnnouncementRegistry {
     uint256 public constant MAX_TEXT = 4096;
     uint256 internal constant TEXT_FIELDS = 133; // ceil(4096 / 31)
     uint256 internal constant MAX_KEYS = 8;
-    uint256 internal constant INPUTS = TEXT_FIELDS + 1 + 3 * MAX_KEYS + 4;
+    uint256 internal constant INPUTS = TEXT_FIELDS + 1 + 3 * MAX_KEYS + 3;
+
+    /// @notice Number of distinct pinned keys that must sign an announcement.
+    uint256 public constant THRESHOLD = 2;
 
     /// @notice Verifier of the circuit in circuit/.
     IVerifier public immutable verifier;
@@ -37,7 +41,10 @@ contract AnnouncementRegistry {
     /// @dev The circuit's key inputs: MAX_KEYS fingerprints, then MAX_KEYS public keys as 16-byte halves.
     bytes32[3 * MAX_KEYS] private _keyInputs;
     mapping(uint64 => Announcement) private _announcements;
+    /// @dev Signers so far of texts not yet registered, by keccak256 of the text.
+    mapping(bytes32 => bytes20[]) private _pending;
 
+    event Signed(uint64 indexed number, bytes20 signer);
     event Announced(uint64 indexed number);
 
     error UnsupportedKey();
@@ -45,6 +52,7 @@ contract AnnouncementRegistry {
     error TooManyKeys();
     error TextTooLong();
     error AlreadyAnnounced(uint64 number);
+    error AlreadySigned();
     error SignatureExpired();
     error InvalidProof();
     error NotAnnounced(uint64 number);
@@ -73,34 +81,40 @@ contract AnnouncementRegistry {
         }
     }
 
-    /// @notice Registers an announcement.
+    /// @notice Adds one signature to an announcement, and registers the text once
+    ///         THRESHOLD distinct keys have signed it.
     /// @param text announcement.txt as published.
-    /// @param number, signers, expiresAt The circuit's outputs, as written by `mfreg prove`.
+    /// @param number, signer, expiresAt The circuit's outputs, as written by `mfreg prove`.
     /// @param proof The proof from `mfreg prove`.
-    function submit(
-        bytes calldata text,
-        uint64 number,
-        bytes20[2] calldata signers,
-        uint64 expiresAt,
-        bytes calldata proof
-    ) external {
+    function submit(bytes calldata text, uint64 number, bytes20 signer, uint64 expiresAt, bytes calldata proof)
+        external
+    {
         Announcement storage a = _announcements[number];
         if (a.signers.length != 0) revert AlreadyAnnounced(number);
         if (expiresAt != 0 && block.timestamp >= expiresAt) revert SignatureExpired();
-        if (!verifier.verify(proof, publicInputs(text, number, signers, expiresAt))) revert InvalidProof();
+        if (!verifier.verify(proof, publicInputs(text, number, signer, expiresAt))) revert InvalidProof();
+
+        bytes32 id = keccak256(text);
+        bytes20[] storage signers = _pending[id];
+        for (uint256 i = 0; i < signers.length; i++) {
+            if (signers[i] == signer) revert AlreadySigned();
+        }
+        signers.push(signer);
+        emit Signed(number, signer);
+        if (signers.length < THRESHOLD) return;
 
         a.text = string(text);
-        a.signers.push(signers[0]);
-        a.signers.push(signers[1]);
+        a.signers = signers;
+        delete _pending[id];
         if (count == 0 || number > latest) latest = number;
         count++;
         emit Announced(number);
     }
 
-    /// @notice The circuit's public inputs for an announcement, in declaration order:
+    /// @notice The circuit's public inputs for one signature, in declaration order:
     ///         text (31-byte big-endian chunks), text length, key fingerprints, key
-    ///         halves, then the outputs: number, both signers, expiration.
-    function publicInputs(bytes calldata text, uint64 number, bytes20[2] calldata signers, uint64 expiresAt)
+    ///         halves, then the outputs: number, signer, expiration.
+    function publicInputs(bytes calldata text, uint64 number, bytes20 signer, uint64 expiresAt)
         public
         view
         returns (bytes32[] memory inputs)
@@ -120,9 +134,13 @@ contract AnnouncementRegistry {
         }
         uint256 o = TEXT_FIELDS + 1 + 3 * MAX_KEYS;
         inputs[o] = bytes32(uint256(number));
-        inputs[o + 1] = bytes32(uint256(uint160(signers[0])));
-        inputs[o + 2] = bytes32(uint256(uint160(signers[1])));
-        inputs[o + 3] = bytes32(uint256(expiresAt));
+        inputs[o + 1] = bytes32(uint256(uint160(signer)));
+        inputs[o + 2] = bytes32(uint256(expiresAt));
+    }
+
+    /// @notice The keys that have signed `text` so far, while it is not yet registered.
+    function pending(bytes calldata text) external view returns (bytes20[] memory) {
+        return _pending[keccak256(text)];
     }
 
     /// @notice The verified text of announcement `number` and the fingerprints that signed it.
@@ -135,6 +153,14 @@ contract AnnouncementRegistry {
     /// @notice The pinned primary key fingerprints, as in gpg-keys.json.
     function keySet() external view returns (bytes20[] memory) {
         return _fingerprints;
+    }
+
+    /// @notice The pinned Ed25519 public keys (RFC 8032 encodings), in keySet() order.
+    function publicKeys() external view returns (bytes32[] memory keys) {
+        keys = new bytes32[](_fingerprints.length);
+        for (uint256 i = 0; i < keys.length; i++) {
+            keys[i] = bytes32(uint256(_keyInputs[MAX_KEYS + 2 * i]) << 128 | uint256(_keyInputs[MAX_KEYS + 2 * i + 1]));
+        }
     }
 
     /// @dev version 4, EdDSA (22), Ed25519 OID, 263-bit MPI with the 0x40 native prefix.

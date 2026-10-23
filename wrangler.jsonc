@@ -1,0 +1,11 @@
+// Serves the built ui/ as a static site on Cloudflare Workers; no Worker script runs.
+{
+  "name": "mf-announcements",
+  "compatibility_date": "2026-10-23",
+  "build": {
+    "command": "npm ci --prefix ui && npm run build --prefix ui"
+  },
+  "assets": {
+    "directory": "./ui/dist"
+  }
+}

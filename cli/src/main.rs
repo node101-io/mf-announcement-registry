@@ -12,7 +12,7 @@ use std::{fs, path::Path, path::PathBuf, process::Command, time::SystemTime};
 enum Cmd {
     /// Print the primary key packets of <KEYS> (*.asc), comma-separated: the registry constructor argument.
     Keys { keys: PathBuf },
-    /// Prove <ANNOUNCEMENT>/announcement.{txt,sig} and write <ANNOUNCEMENT>/proof.json.
+    /// Prove two signatures of <ANNOUNCEMENT>/announcement.{txt,sig} and write <ANNOUNCEMENT>/proof.json.
     Prove {
         announcement: PathBuf,
         keys: PathBuf,
@@ -41,28 +41,34 @@ fn main() -> Result<()> {
             let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?.as_secs();
             let chosen = openpgp::select(&signatures, &keys, now).ok_or("fewer than two pinned keys signed")?;
 
-            fs::write(circuit.join("Prover.toml"), Inputs { text: text.clone(), keys, signatures: chosen }.to_toml()?)?;
-            run(Command::new("nargo").arg("execute").current_dir(&circuit))?;
-            run(Command::new("bb")
-                .args(["prove", "--write_vk", "-t", "evm-no-zk", "-o", "target"])
-                .args(["-b", "target/mf_signatures.json", "-w", "target/mf_signatures.gz"])
-                .current_dir(&circuit))?;
+            // One proof per signature; the registry counts distinct signers.
+            let mut number = 0;
+            let mut proofs = Vec::new();
+            for signature in chosen {
+                let inputs = Inputs { text: text.clone(), keys: keys.clone(), signature };
+                fs::write(circuit.join("Prover.toml"), inputs.to_toml()?)?;
+                run(Command::new("nargo").arg("execute").current_dir(&circuit))?;
+                run(Command::new("bb")
+                    .args(["prove", "--write_vk", "-t", "evm-no-zk", "-o", "target"])
+                    .args(["-b", "target/mf_signatures.json", "-w", "target/mf_signatures.gz"])
+                    .current_dir(&circuit))?;
 
-            // The last four public inputs are the circuit's outputs, which `submit` takes alongside the proof.
-            let inputs: Vec<[u8; 32]> = fs::read(circuit.join("target/public_inputs"))?.chunks(32).map(|w| w.try_into().unwrap()).collect();
-            let [number, signer_0, signer_1, expires_at] = inputs[inputs.len() - 4..] else { unreachable!() };
-            let uint = |w: [u8; 32]| u64::from_be_bytes(w[24..].try_into().unwrap());
-            println!("announcement #{} signed by {} and {}", uint(number), hex::encode_upper(&signer_0[12..]), hex::encode_upper(&signer_1[12..]));
+                // The last three public inputs are the circuit's outputs, which `submit` takes alongside the proof.
+                let words: Vec<[u8; 32]> = fs::read(circuit.join("target/public_inputs"))?.chunks(32).map(|w| w.try_into().unwrap()).collect();
+                let [n, signer, expires_at] = words[words.len() - 3..] else { unreachable!() };
+                let uint = |w: [u8; 32]| u64::from_be_bytes(w[24..].try_into().unwrap());
+                number = uint(n);
+                println!("announcement #{number}: proved the signature by {}", hex::encode_upper(&signer[12..]));
+                proofs.push(serde_json::json!({
+                    "signer": format!("0x{}", hex::encode(&signer[12..])),
+                    "expiresAt": uint(expires_at),
+                    "proof": format!("0x{}", hex::encode(fs::read(circuit.join("target/proof"))?)),
+                    "publicInputs": words.iter().map(|w| format!("0x{}", hex::encode(w))).collect::<Vec<_>>(),
+                }));
+            }
 
             let out = announcement.join("proof.json");
-            let json = serde_json::json!({
-                "text": format!("0x{}", hex::encode(&text)),
-                "number": uint(number),
-                "signers": [format!("0x{}", hex::encode(&signer_0[12..])), format!("0x{}", hex::encode(&signer_1[12..]))],
-                "expiresAt": uint(expires_at),
-                "proof": format!("0x{}", hex::encode(fs::read(circuit.join("target/proof"))?)),
-                "publicInputs": inputs.iter().map(|w| format!("0x{}", hex::encode(w))).collect::<Vec<_>>(),
-            });
+            let json = serde_json::json!({ "text": format!("0x{}", hex::encode(&text)), "number": number, "proofs": proofs });
             fs::write(&out, serde_json::to_string_pretty(&json)?)?;
             println!("wrote {}", out.display());
         }

@@ -1,0 +1,7 @@
+# Proving uses threads, which need cross-origin isolation.
+/prove.html
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+/prove
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
