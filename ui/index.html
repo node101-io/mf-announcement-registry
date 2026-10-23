@@ -6,30 +6,38 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src http: https:">
 <title>Monad Foundation announcements</title>
 <style>
-  body { font: 15px/1.55 system-ui, sans-serif; max-width: 720px; margin: 2.5rem auto; padding: 0 1rem; color: #16151a; }
-  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
-  .muted { color: #6b6773; font-size: 13px; }
+  :root { --purple: #6e54ff; --deep: #200052; --ink: #0f0f12; --muted: #727285; --line: #ececec; --tint: #f1efff; }
+  body { font: 15px/1.6 Inter, system-ui, sans-serif; margin: 0; background: #fbfaf9; color: var(--ink); }
+  main { max-width: 720px; margin: 0 auto; padding: 0 1rem 3rem; }
+  .hero { background: radial-gradient(120% 140% at 0% 0%, var(--purple), var(--deep) 60%); color: #fbfaf9; padding: 2.5rem 1rem 2rem; margin-bottom: 1.5rem; }
+  .hero > div { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.7rem; letter-spacing: -.02em; margin: 0 0 .3rem; }
+  .hero p { margin: 0; opacity: .8; }
+  .tag { font: 600 11px ui-monospace, monospace; text-transform: uppercase; letter-spacing: .08em; background: #fbfaf9; color: var(--deep); border-radius: 99px; padding: .2rem .6rem; vertical-align: middle; margin-left: .5rem; }
+  .muted { color: var(--muted); font-size: 13px; }
   .error { color: #b00020; }
-  .warning { background: #fff4d6; border: 1px solid #f0d58a; border-radius: 8px; padding: .5rem .8rem; margin: 1rem 0; }
-  article { border: 1px solid #e3e1e8; border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
-  article header { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
-  article h2 { font-size: 1.05rem; margin: 0; }
-  .badge { font-size: 12px; color: #1d7a3c; white-space: nowrap; }
-  .body { white-space: pre-wrap; word-break: break-word; margin: .7rem 0 .3rem; }
-  code { font: 13px ui-monospace, monospace; background: #f3f2f6; padding: 0 .25em; border-radius: 4px; }
-  a { color: #6e54ff; }
-  details { margin-top: .4rem; }
-  summary { cursor: pointer; color: #6b6773; font-size: 13px; }
-  .fpr { font: 12px ui-monospace, monospace; color: #4b4853; }
+  .warning { background: #fff4d6; border: 1px solid #f0d58a; border-radius: 12px; padding: .6rem .9rem; margin: 1rem 0; }
+  article { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 1.2rem 1.4rem; margin: 1rem 0; box-shadow: 0 1px 2px #20005210; }
+  article header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  article h2 { font-size: 1.05rem; margin: 0; color: var(--deep); }
+  .badge { font-size: 12px; font-weight: 600; color: var(--purple); background: var(--tint); border-radius: 99px; padding: .15rem .6rem; white-space: nowrap; }
+  .body { white-space: pre-wrap; word-break: break-word; margin: .8rem 0 .4rem; }
+  code { font: 13px ui-monospace, monospace; background: var(--tint); color: var(--deep); padding: .05em .3em; border-radius: 4px; }
+  a { color: var(--purple); }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .fpr { font: 12px ui-monospace, monospace; color: var(--muted); }
   footer { margin-top: 3rem; }
-  form { display: grid; grid-template-columns: auto 1fr; gap: .4rem .8rem; align-items: center; margin: .8rem 0; }
-  input { font: 13px ui-monospace, monospace; padding: .35rem; }
-  button { grid-column: 2; justify-self: start; padding: .3rem 1rem; }
+  form { display: grid; grid-template-columns: auto 1fr; gap: .5rem .8rem; align-items: center; margin: .8rem 0; }
+  input { font: 13px ui-monospace, monospace; padding: .45rem .6rem; border: 1px solid var(--line); border-radius: 8px; }
+  button { grid-column: 2; justify-self: start; font: 600 13px Inter, system-ui, sans-serif; color: #fff; background: var(--purple); border: 0; border-radius: 99px; padding: .45rem 1.2rem; cursor: pointer; }
 </style>
 </head>
 <body>
-<h1>Monad Foundation announcements</h1>
-<p class="muted">Each announcement below was signed by two Monad Foundation keys, checked on-chain.</p>
+<div class="hero"><div>
+  <h1>Monad Foundation announcements<span id="network" class="tag" hidden></span></h1>
+  <p>Each announcement below was signed by two Monad Foundation keys, checked on-chain.</p>
+</div></div>
+<main>
 
 <div id="warning" class="warning" hidden></div>
 <div id="status" class="muted">Loading…</div>
@@ -48,16 +56,20 @@
     <div id="keys"></div>
   </details>
 </footer>
+</main>
 
 <script>
-// Set once the registry is deployed on Monad mainnet.
-const DEFAULT_REGISTRY = "";
-const DEFAULT_RPC = "https://rpc.monad.xyz";
+// The registry this page reads by default, and the network it is on (empty for mainnet).
+const DEFAULT_REGISTRY = "0x8F759C1c40322f49881053c95b1DE5C2035863D1";
+const DEFAULT_RPC = "https://testnet-rpc.monad.xyz";
+const NETWORK = "Testnet";
 
 // Function selectors of AnnouncementRegistry.
 const SEL = { count: "0x06661abd", latest: "0x52bfe789", keySet: "0x788499c0", announcement: "0x91b5aa36" };
 
 const $ = (id) => document.getElementById(id);
+$("network").textContent = NETWORK;
+$("network").hidden = !NETWORK;
 // Settings are only changed by hand, never by a link: a crafted RPC or registry
 // could show anything.
 $("rpc").placeholder = DEFAULT_RPC;

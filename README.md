@@ -13,7 +13,8 @@ cast call $REGISTRY "announcement(uint64)(string,bytes20[])" 6 --rpc-url http://
 ```
 
 `ui/index.html` is a single static page that lists them, with light formatting (bold, code, links). It reads
-from the public Monad RPC by default; Settings at the bottom points it at any other RPC, such as your own node.
+the testnet deployment through the public RPC by default; Settings at the bottom points it at any other RPC, such
+as your own node.
 
 ## How it works
 
@@ -36,6 +37,18 @@ Barretenberg, and your node. Not trusted: whoever submits, whoever hosts
 the UI, and where the files came from.
 
 A new key set means a new registry.
+
+## Deployments
+
+Monad testnet (chain 10143), with the Foundation's keys and mf-0 to mf-6 submitted:
+
+| Contract | Address |
+|---|---|
+| `AnnouncementRegistry` | `0x8F759C1c40322f49881053c95b1DE5C2035863D1` |
+| `HonkVerifier` | `0x8B2ea61247eCdb30EC388BeDe2C59d58B33a8C92` |
+| `RelationsLib` (linked by the verifier) | `0xdadf06027Ee1AC32D08e3ac31ae86D72E8C54f35` |
+
+The addresses come from CREATE2, so a mainnet deployment of the same code and keys gets the same ones.
 
 ## Checking a deployed registry
 
@@ -93,7 +106,7 @@ KEYS=$(../target/release/mfreg keys ../testdata/keys) \
 To try it locally, run `anvil --fork-url https://rpc.monad.xyz`, which is a local Monad mainnet fork, and use its
 first test account.
 
-After deploying to mainnet, set `DEFAULT_REGISTRY` in `ui/index.html`.
+After deploying to mainnet, set `DEFAULT_RPC` to `https://rpc.monad.xyz` and `NETWORK` to `""` in `ui/index.html`.
 
 ## Tests
 
