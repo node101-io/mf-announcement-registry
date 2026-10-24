@@ -18,8 +18,10 @@ such as your own node. It has no dependencies and loads nothing but `style.css`.
 in plain terms.
 
 `ui/prove.html` submits an announcement: it fetches the text and signatures from mf-nodeops-comms, proves each
-signature in the browser (about 20 seconds and up to 3 GB of memory each, on a desktop browser) and sends them with
-the connected wallet. Only this page loads the prover, about 90 MB on first use.
+signature in the browser (about 20 seconds and up to 3 GB of memory each, on a desktop browser), checks each proof
+against the registry's verifier with `eth_call`, and then, as a separate step, sends them with the connected wallet.
+Proving needs no wallet, so anyone can try it, also on an announcement that is already registered. Only this page
+loads the prover, about 90 MB on first use.
 
 ### Hosting the page yourself
 
