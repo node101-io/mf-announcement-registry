@@ -20,20 +20,22 @@
 <div class="page">
 <div class="hero">
   <h1>Submit an announcement</h1>
-  <p>Proves the Foundation's signatures in your browser and submits them to the registry.</p>
+  <p>Proves the Foundation's signatures in your browser, then submits them to the registry if you want.</p>
 </div>
 <main>
   <p class="muted">Anyone can submit: the registry verifies every proof, so neither this page nor whoever runs it is
-    trusted. Proving downloads about 90 MB once and needs up to 3 GB of memory; use a desktop browser. Each signature is
-    one transaction of about 5 million gas. Registry: <code id="registry"></code>.</p>
+    trusted. Proving needs no wallet; it downloads about 90 MB once and needs up to 3 GB of memory, so use a
+    desktop browser. Each signature is then one transaction of about 5 million gas. The registry takes each signature
+    once: a proof made just to try, or one someone else submits first, can't be submitted. Registry: <code id="registry"></code>.</p>
   <div class="card">
     <form id="form">
       <label for="number">Announcement</label><input id="number" placeholder="7, fetched from mf-nodeops-comms">
       <label for="txt">or announcement.txt</label><input id="txt" type="file" accept=".txt">
       <label for="sig">and announcement.sig</label><input id="sig" type="file" accept=".sig,.asc">
-      <button id="run">Prove and submit</button>
+      <button id="run">Prove</button>
     </form>
     <div id="log"></div>
+    <button id="submit" type="button" hidden>Submit</button>
   </div>
 </main>
 </div>
