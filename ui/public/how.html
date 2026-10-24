@@ -37,7 +37,7 @@
     <ol>
       <li><strong>The Foundation signs.</strong> It publishes <code>announcement.txt</code> and
         <code>announcement.sig</code> on GitHub, as it already does.</li>
-      <li><strong>Anyone proves each signature.</strong> A zero-knowledge proof shows "this exact text was signed by
+      <li><strong>Anyone proves each signature.</strong> A proof shows "this exact text was signed by
         this Foundation key". Producing it repeats what gpg does: read the signature packet, hash the text (SHA-256 or
         SHA-512) and verify the Ed25519 signature. It takes about 20 seconds, on the
         <a href="prove.html">submit page</a> or the command line.</li>
@@ -48,6 +48,17 @@
         the registry stores it. <a href="./">The announcements page</a> reads it back from the chain.</li>
     </ol>
     <p>The signatures themselves never go on-chain: the proofs stand for them.</p>
+  </section>
+
+  <section class="card">
+    <h2>Why a proof?</h2>
+    <p>A contract could check the signatures itself, but the EVM has no built-in Ed25519 or SHA-512: the whole check
+      would have to be written by hand in Solidity, which is costly and easy to get wrong. Having someone check
+      off-chain and report the result would mean trusting them, which defeats the purpose.</p>
+    <p>Instead the check runs off-chain, in a circuit built on existing libraries, and produces a SNARK: a short proof
+      that the check passed. The contract verifies it at the same cost whatever the text's length or hash. Anyone can
+      produce it and nobody has to trust them: there is no valid proof for a signature that doesn't verify.</p>
+    <p>The proof hides nothing: the texts and signatures are public anyway.</p>
   </section>
 
   <section class="card">
